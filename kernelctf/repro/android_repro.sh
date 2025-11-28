@@ -24,9 +24,29 @@ echo "[REPRO $TRY_ID] Exploit path: $EXPLOIT_PATH"
 echo "[REPRO $TRY_ID] APK path: $APK_PATH"
 echo "[REPRO $TRY_ID] Flag file: flag_$TRY_ID"
 
-# Run cuttlefish.sh with correct groups using sg command
-# Note: We need to nest sg commands to activate all three groups (kvm, cvdnetwork, render)
-sg kvm -c "sg cvdnetwork -c 'sg render -c \"timeout ${STDOUT_TIMEOUT}s bash ./cuttlefish.sh --release_path=$RELEASE_PATH --bin_path=$EXPLOIT_PATH --flag_path=flag_$TRY_ID --apk_path=$APK_PATH --test-mode\"'" 2>&1 | tee $CUTTLEFISH_TXT &
+# Determine the path to cuttlefish.sh
+# Look for it in common locations
+CUTTLEFISH_SCRIPT=""
+if [ -f "./cuttlefish.sh" ]; then
+    CUTTLEFISH_SCRIPT="./cuttlefish.sh"
+elif [ -f "../../android_deps/kernelctf/server/cuttlefish.sh" ]; then
+    CUTTLEFISH_SCRIPT="../../android_deps/kernelctf/server/cuttlefish.sh"
+else
+    echo "[ERROR] Could not find cuttlefish.sh"
+    exit 1
+fi
+
+echo "[REPRO $TRY_ID] Using cuttlefish script: $CUTTLEFISH_SCRIPT"
+
+# Run cuttlefish.sh directly in CI
+timeout ${STDOUT_TIMEOUT}s bash "$CUTTLEFISH_SCRIPT" \
+    --release_path="$RELEASE_PATH" \
+    --bin_path="$EXPLOIT_PATH" \
+    --flag_path=flag_$TRY_ID \
+    --apk_path="$APK_PATH" \
+    --test-mode \
+    2>&1 | tee $CUTTLEFISH_TXT &
+
 CUTTLEFISH_PID="$!"
 
 echo "[REPRO $TRY_ID] Cuttlefish PID: $CUTTLEFISH_PID"
@@ -44,7 +64,9 @@ cp $CUTTLEFISH_TXT repro_log_$TRY_ID.txt
 
 # Calculate run time
 RUN_TIME=$(expr $(date +%s) - $START_TIME)
-echo "RUN_TIME=$RUN_TIME" >> "$GITHUB_OUTPUT"
+if [ -n "$GITHUB_OUTPUT" ]; then
+    echo "RUN_TIME=$RUN_TIME" >> "$GITHUB_OUTPUT"
+fi
 echo "[REPRO $TRY_ID] Run time: ${RUN_TIME}s"
 
 # Check if we got the flag
