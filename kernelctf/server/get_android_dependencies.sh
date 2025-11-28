@@ -309,6 +309,11 @@ log "... The End ..."
 
 if [ "$EXPLOIT_BUILD_ONLY" = false ] && [ "$NEEDS_RELOAD" = true ]; then
     echo ""
-    warn "Spawning new shell with updated group permissions..."
-    exec sudo su - $USER
+    if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+        warn "Running in CI environment - group changes detected"
+        warn "Groups will be activated using 'sg' command when running Cuttlefish"
+    else
+        warn "Spawning new shell with updated group permissions..."
+        exec sudo su - $USER
+    fi
 fi
