@@ -256,18 +256,20 @@ jobs:
         run: chmod +x ./exp/exploit
 
       # ============================================
+      # Shared Setup
+      # ============================================
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # ============================================
       # Linux (QEMU) Setup
       # ============================================
       - name: Install tools (QEMU, inotify, expect) - Linux only
         if: startsWith(matrix.target, 'android') == false
         run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 inotify-tools expect
-
-      - name: Enable KVM group perms - Linux only
-        if: startsWith(matrix.target, 'android') == false
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
 
       - name: Fetch rootfs - Linux only
         if: startsWith(matrix.target, 'android') == false
@@ -284,6 +286,12 @@ jobs:
       # ============================================
       # Android (Cuttlefish) Setup
       # ============================================
+      - name: Load optional kernel modules for Cuttlefish - Android only
+        if: startsWith(matrix.target, 'android')
+        run: |
+          sudo modprobe vhost_net || true
+          sudo modprobe vhost_vsock || true
+
       - name: Checkout master for Android scripts
         if: startsWith(matrix.target, 'android')
         uses: actions/checkout@v4
@@ -332,7 +340,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 1 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 1 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 1
           fi
@@ -342,7 +350,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 2 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 2 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 2
           fi
@@ -352,7 +360,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 3 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 3 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 3
           fi
@@ -362,7 +370,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 4 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 4 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 4
           fi
@@ -372,7 +380,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 5 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 5 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 5
           fi
@@ -382,7 +390,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 6 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 6 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 6
           fi
@@ -392,7 +400,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 7 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 7 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 7
           fi
@@ -402,7 +410,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 8 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 8 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 8
           fi
@@ -412,7 +420,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 9 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 9 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 9
           fi
@@ -422,7 +430,7 @@ jobs:
         continue-on-error: true
         run: |
           if [[ "$RELEASE_ID" == android* ]]; then
-            bash ../../android_deps/kernelctf/repro/android_repro.sh 10 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
+            ./android_repro.sh 10 "$ANDROID_RELEASE_PATH" "$(realpath ./exp/exploit)" "$APK_PATH"
           else
             ./repro.sh 10
           fi
