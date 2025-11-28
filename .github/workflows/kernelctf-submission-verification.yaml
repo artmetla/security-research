@@ -107,26 +107,7 @@ jobs:
         if: startsWith(matrix.target, 'android')
         run: |
           chmod +x master/kernelctf/server/get_android_dependencies.sh
-          sudo master/kernelctf/server/get_android_dependencies.sh exploit-build-only
-
-      - name: Install Android NDK
-        if: startsWith(matrix.target, 'android')
-        run: |
-          export ANDROID_HOME=/usr/lib/android-sdk
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          
-          # Get the latest available NDK version from sdkmanager
-          NDK_VERSION=$($SDKMANAGER --list | grep "ndk;" | grep -v "ndk-bundle" | tail -1 | awk '{print $1}' | cut -d';' -f2)
-          
-          echo "Installing latest NDK version: ${NDK_VERSION}"
-          sudo $SDKMANAGER "ndk;${NDK_VERSION}"
-          
-          # Add NDK toolchain to PATH
-          NDK_TOOLCHAIN_PATH="$ANDROID_HOME/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "$NDK_TOOLCHAIN_PATH" >> $GITHUB_PATH
+          sudo master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
 
       - name: Install kernelXDK (Linux only)
         if: startsWith(matrix.target, 'android') == false
@@ -202,26 +183,7 @@ jobs:
         if: startsWith(matrix.target, 'android')
         run: |
           chmod +x master/kernelctf/server/get_android_dependencies.sh
-          sudo master/kernelctf/server/get_android_dependencies.sh exploit-build-only
-
-      - name: Install Android NDK
-        if: startsWith(matrix.target, 'android')
-        run: |
-          export ANDROID_HOME=/usr/lib/android-sdk
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          
-          # Get the latest available NDK version from sdkmanager
-          NDK_VERSION=$($SDKMANAGER --list | grep "ndk;" | grep -v "ndk-bundle" | tail -1 | awk '{print $1}' | cut -d';' -f2)
-          
-          echo "Installing latest NDK version: ${NDK_VERSION}"
-          sudo $SDKMANAGER "ndk;${NDK_VERSION}"
-          
-          # Add NDK toolchain to PATH
-          NDK_TOOLCHAIN_PATH="$ANDROID_HOME/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "$NDK_TOOLCHAIN_PATH" >> $GITHUB_PATH
+          sudo master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
 
       - name: Install kernelXDK (Linux only)
         if: startsWith(matrix.target, 'android') == false
