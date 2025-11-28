@@ -26,7 +26,7 @@ echo "[REPRO $TRY_ID] Flag file: flag_$TRY_ID"
 
 # Run cuttlefish.sh with correct groups using sg command
 # Note: We need to nest sg commands to activate all three groups (kvm, cvdnetwork, render)
-sg kvm -c "sg cvdnetwork -c 'sg render -c \"timeout ${STDOUT_TIMEOUT}s bash ./cuttlefish.sh --release_path=$RELEASE_PATH --bin_path=$EXPLOIT_PATH --flag_path=flag_$TRY_ID --apk_path=$APK_PATH\"'" 2>&1 | tee $CUTTLEFISH_TXT &
+sg kvm -c "sg cvdnetwork -c 'sg render -c \"timeout ${STDOUT_TIMEOUT}s bash ./cuttlefish.sh --release_path=$RELEASE_PATH --bin_path=$EXPLOIT_PATH --flag_path=flag_$TRY_ID --apk_path=$APK_PATH --test-mode\"'" 2>&1 | tee $CUTTLEFISH_TXT &
 CUTTLEFISH_PID="$!"
 
 echo "[REPRO $TRY_ID] Cuttlefish PID: $CUTTLEFISH_PID"
