@@ -37,14 +37,17 @@ fi
 
 echo "[REPRO $TRY_ID] Using cuttlefish script: $CUTTLEFISH_SCRIPT"
 
-# Run cuttlefish.sh with proper group activation in CI
-# Use `su` with `-` to start a fresh login shell that will have the new group memberships active
-sudo su - "$USER" -c "cd '$PWD' && timeout ${STDOUT_TIMEOUT}s bash '$CUTTLEFISH_SCRIPT' \
-    --release_path='$RELEASE_PATH' \
-    --bin_path='$EXPLOIT_PATH' \
+# In CI, device permissions are set to 0666, so we can skip group checks
+# The groups (kvm, cvdnetwork, render) are added by get_android_dependencies.sh
+# but they don't activate in the current shell without a login session restart
+timeout ${STDOUT_TIMEOUT}s bash "$CUTTLEFISH_SCRIPT" \
+    --release_path="$RELEASE_PATH" \
+    --bin_path="$EXPLOIT_PATH" \
     --flag_path=flag_$TRY_ID \
-    --apk_path='$APK_PATH' \
-    --test-mode" 2>&1 | tee $CUTTLEFISH_TXT &
+    --apk_path="$APK_PATH" \
+    --test-mode \
+    --skip-checks \
+    2>&1 | tee $CUTTLEFISH_TXT &
 
 CUTTLEFISH_PID="$!"
 
@@ -70,10 +73,10 @@ echo "[REPRO $TRY_ID] Run time: ${RUN_TIME}s"
 
 # Check if we got the flag
 if grep -q "$FLAG" $CUTTLEFISH_TXT; then
-    echo "[REPRO $TRY_ID] Got the flag! Congrats!"
+    echo "[REPRO $TRY_ID] ✅ Got the flag! Congrats!"
     exit 0
 else
-    echo "[REPRO $TRY_ID] Failed, did not get the flag."
+    echo "[REPRO $TRY_ID] ❌ Failed, did not get the flag."
     
     # Provide some debugging info
     if [ $CUTTLEFISH_EXIT -eq 124 ]; then
