@@ -2,7 +2,6 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APK_PATH="$SCRIPT_DIR/android_shellserver/app/build/outputs/apk/release/app-release.apk"
 RELEASE_PATH=""
 
 cleanup_function() {
@@ -54,7 +53,7 @@ cleanup_wrapper() {
 trap 'cleanup_wrapper' EXIT
 
 usage() {
-    echo "Usage: $0 --release_path=<release_path> --flag_path=<flag_fn> [--bin_path=<bin_path>]"
+    echo "Usage: $0 --release_path=<release_path> --flag_path=<flag_fn> [--bin_path=<bin_path>] [--apk_path=<apk_path>]"
     exit 1;
 }
 
@@ -204,6 +203,7 @@ while [[ $# -gt 0 ]]; do
     --release_path=*) RELEASE_PATH="${1#*=}"; shift;;
     --bin_path=*) BIN_PATH="${1#*=}"; shift;;
     --flag_path=*) FLAG_FN="${1#*=}"; shift;;
+    --apk_path=*) APK_PATH="${1#*=}"; shift;;
     --skip-checks) SKIP_CHECKS=1; shift;;
     --) # stop processing special arguments after "--"
         shift
@@ -226,6 +226,19 @@ if [ -z "$FLAG_FN" ]; then
     echo "[ERROR] --flag_path is required"
     usage
 fi
+
+# Set default APK path if not provided
+if [ -z "$APK_PATH" ]; then
+    APK_PATH="$SCRIPT_DIR/android_shellserver/app/build/outputs/apk/release/app-release.apk"
+fi
+
+# Validate that APK file exists
+if [ ! -f "$APK_PATH" ]; then
+    echo "[ERROR] APK file not found at $APK_PATH"
+    exit 1
+fi
+
+echo "[OK] APK file found: $APK_PATH"
 
 # Run pre-flight checks (unless --skip-checks is specified)
 if [ -z "$SKIP_CHECKS" ]; then
@@ -419,11 +432,6 @@ pipe_name=$(mktemp -u)
 mkfifo "$pipe_name"
 
 # Install APK
-if [ ! -f "$APK_PATH" ]; then
-    echo "[ERROR] APK file not found at $APK_PATH"
-    exit 1
-fi
-
 echo "[INSTALLING] Installing APK..."
 if ! $on_guest install -g $APK_PATH 2>&1 | tee /tmp/apk_install_$instance_num.log; then
     echo "[ERROR] APK installation failed"
