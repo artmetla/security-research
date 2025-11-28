@@ -9,8 +9,6 @@ fi
 
 ANDROID_COMPILE_SDK="android-34"
 ANDROID_BUILD_TOOLS="35.0.0"
-CMDLINE_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip"
-CMDLINE_TOOLS_VER="13.0" 
 
 log() {
     echo "[SETUP] $1"
@@ -170,6 +168,21 @@ if [ ! -d "$ANDROID_HOME" ]; then
 fi
 
 if [ ! -d "$ANDROID_HOME/cmdline-tools/latest" ]; then
+    # Get latest cmdline-tools version from Android SDK repository
+    log "Detecting latest command-line tools version..."
+    LATEST_CMDLINE_VERSION=$(curl -s https://dl.google.com/android/repository/repository2-3.xml | \
+        grep -oP 'commandlinetools-linux-\K[0-9]+' | \
+        sort -n | \
+        tail -1)
+
+    if [ -n "$LATEST_CMDLINE_VERSION" ]; then
+        CMDLINE_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-${LATEST_CMDLINE_VERSION}_latest.zip"
+        log "Using latest command-line tools version: $LATEST_CMDLINE_VERSION"
+    else
+        warn "Could not detect latest version, using default"
+        CMDLINE_TOOLS_URL="https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip"
+    fi
+    
     log "Downloading command line tools..."
     wget -q --show-progress "$CMDLINE_TOOLS_URL" -O cmdline_tools.zip
     unzip -q cmdline_tools.zip -d cmdline-tools
