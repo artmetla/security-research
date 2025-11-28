@@ -1,9 +1,12 @@
 #!/bin/bash
 set -e
 
+# Unset conflicting Android SDK environment variable if it exists
+unset ANDROID_SDK_ROOT
+
 # Check if running in exploit-build-only mode
 EXPLOIT_BUILD_ONLY=false
-if [ "$1" == "exploit-build-only" ]; then
+if [ "$1" == "--exploit-build-only" ]; then
     EXPLOIT_BUILD_ONLY=true
 fi
 
@@ -158,7 +161,24 @@ fi
 # Android SDK & Build Tools
 install_if_missing "android-sdk" "Android SDK"
 
-export ANDROID_HOME=/usr/lib/android-sdk
+# Detect ANDROID_HOME location after apt installation (universal detection)
+if [ -d "/usr/lib/android-sdk" ]; then
+    export ANDROID_HOME=/usr/lib/android-sdk
+elif [ -d "/usr/local/lib/android/sdk" ]; then
+    export ANDROID_HOME=/usr/local/lib/android/sdk
+elif [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
+    # Use existing ANDROID_HOME if set and valid
+    log "Using existing ANDROID_HOME: $ANDROID_HOME"
+else
+    # Try to find it using dpkg
+    ANDROID_HOME=$(dpkg -L android-sdk 2>/dev/null | grep -m1 "bin/sdkmanager$" | xargs dirname | xargs dirname || echo "")
+    if [ -z "$ANDROID_HOME" ] || [ ! -d "$ANDROID_HOME" ]; then
+        error "Could not detect ANDROID_HOME after installing android-sdk package"
+        error "Please set ANDROID_HOME manually"
+        exit 1
+    fi
+fi
+
 log "ANDROID_HOME set to: $ANDROID_HOME"
 
 if [ ! -d "$ANDROID_HOME" ]; then
@@ -228,6 +248,42 @@ else
     error "sdkmanager not found at $SDKMANAGER"
     exit 1
 fi
+
+# Android NDK Installation
+log "Checking Android NDK installation..."
+
+# Get the latest available NDK version from sdkmanager
+NDK_VERSION=$($SDKMANAGER --list 2>/dev/null | grep "ndk;" | grep -v "ndk-bundle" | tail -1 | awk '{print $1}' | cut -d';' -f2)
+
+if [ -z "$NDK_VERSION" ]; then
+    error "Could not detect latest NDK version from sdkmanager"
+    exit 1
+fi
+
+# Check if NDK is already installed
+if [ -d "$ANDROID_HOME/ndk/$NDK_VERSION" ]; then
+    log "NDK $NDK_VERSION is already installed"
+else
+    log "Installing Android NDK version: $NDK_VERSION"
+    
+    if [ ! -w "$ANDROID_HOME" ]; then
+        sudo $SDKMANAGER "ndk;${NDK_VERSION}"
+    else
+        $SDKMANAGER "ndk;${NDK_VERSION}"
+    fi
+    
+    log "NDK installation complete"
+fi
+
+# Set NDK environment variables
+export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$NDK_VERSION"
+NDK_TOOLCHAIN_PATH="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+
+# Add NDK to PATH
+export PATH="$NDK_TOOLCHAIN_PATH:$PATH"
+
+log "ANDROID_NDK_HOME set to: $ANDROID_NDK_HOME"
+log "NDK toolchain added to PATH"
 
 # Skip android_shellserver build in exploit-build-only mode
 if [ "$EXPLOIT_BUILD_ONLY" = false ]; then
