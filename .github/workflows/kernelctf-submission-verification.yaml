@@ -126,7 +126,7 @@ jobs:
           
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "PATH=$NDK_TOOLCHAIN_PATH:$PATH" >> $GITHUB_ENV
+          echo "$NDK_TOOLCHAIN_PATH" >> $GITHUB_PATH
 
       - name: Install kernelXDK (Linux only)
         if: ${{ !startsWith(matrix.target, 'android') }}
@@ -221,7 +221,7 @@ jobs:
           
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "PATH=$NDK_TOOLCHAIN_PATH:$PATH" >> $GITHUB_ENV
+          echo "$NDK_TOOLCHAIN_PATH" >> $GITHUB_PATH
 
       - name: Install kernelXDK (Linux only)
         if: ${{ !startsWith(matrix.target, 'android') }}
