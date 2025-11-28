@@ -38,16 +38,13 @@ fi
 echo "[REPRO $TRY_ID] Using cuttlefish script: $CUTTLEFISH_SCRIPT"
 
 # Run cuttlefish.sh with proper group activation in CI
-# Use sudo --user to activate group memberships (kvm, cvdnetwork, render)
-# This is needed because groups added during the workflow aren't active in the current shell
-sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- \
-    timeout ${STDOUT_TIMEOUT}s bash "$CUTTLEFISH_SCRIPT" \
-        --release_path="$RELEASE_PATH" \
-        --bin_path="$EXPLOIT_PATH" \
-        --flag_path=flag_$TRY_ID \
-        --apk_path="$APK_PATH" \
-        --test-mode \
-        2>&1 | tee $CUTTLEFISH_TXT &
+# Use `su` with `-` to start a fresh login shell that will have the new group memberships active
+sudo su - "$USER" -c "cd '$PWD' && timeout ${STDOUT_TIMEOUT}s bash '$CUTTLEFISH_SCRIPT' \
+    --release_path='$RELEASE_PATH' \
+    --bin_path='$EXPLOIT_PATH' \
+    --flag_path=flag_$TRY_ID \
+    --apk_path='$APK_PATH' \
+    --test-mode" 2>&1 | tee $CUTTLEFISH_TXT &
 
 CUTTLEFISH_PID="$!"
 
