@@ -107,7 +107,8 @@ jobs:
         if: startsWith(matrix.target, 'android')
         run: |
           chmod +x master/kernelctf/server/get_android_dependencies.sh
-          sudo master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
+          # Run with sudo -E and explicitly pass GITHUB_ENV and GITHUB_PATH
+          sudo -E GITHUB_ENV=$GITHUB_ENV GITHUB_PATH=$GITHUB_PATH bash master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
 
       - name: Install kernelXDK (Linux only)
         if: startsWith(matrix.target, 'android') == false
@@ -183,7 +184,8 @@ jobs:
         if: startsWith(matrix.target, 'android')
         run: |
           chmod +x master/kernelctf/server/get_android_dependencies.sh
-          sudo master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
+          # Run with sudo -E and explicitly pass GITHUB_ENV and GITHUB_PATH
+          sudo -E GITHUB_ENV=$GITHUB_ENV GITHUB_PATH=$GITHUB_PATH bash master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
 
       - name: Install kernelXDK (Linux only)
         if: startsWith(matrix.target, 'android') == false
