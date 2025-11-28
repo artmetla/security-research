@@ -3,6 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RELEASE_PATH=""
+TEST_MODE=0
 
 cleanup_function() {
     set +e
@@ -53,7 +54,7 @@ cleanup_wrapper() {
 trap 'cleanup_wrapper' EXIT
 
 usage() {
-    echo "Usage: $0 --release_path=<release_path> --flag_path=<flag_fn> [--bin_path=<bin_path>] [--apk_path=<apk_path>]"
+    echo "Usage: $0 --release_path=<release_path> --flag_path=<flag_fn> [--bin_path=<bin_path>] [--apk_path=<apk_path>] [--test-mode]"
     exit 1;
 }
 
@@ -204,6 +205,7 @@ while [[ $# -gt 0 ]]; do
     --bin_path=*) BIN_PATH="${1#*=}"; shift;;
     --flag_path=*) FLAG_FN="${1#*=}"; shift;;
     --apk_path=*) APK_PATH="${1#*=}"; shift;;
+    --test-mode) TEST_MODE=1; shift;;
     --skip-checks) SKIP_CHECKS=1; shift;;
     --) # stop processing special arguments after "--"
         shift
@@ -239,6 +241,10 @@ if [ ! -f "$APK_PATH" ]; then
 fi
 
 echo "[OK] APK file found: $APK_PATH"
+
+if [ "$TEST_MODE" -eq 1 ]; then
+    echo "[TEST MODE] Running in test mode - flag will be readable by exploit user"
+fi
 
 # Run pre-flight checks (unless --skip-checks is specified)
 if [ -z "$SKIP_CHECKS" ]; then
@@ -416,8 +422,17 @@ echo "[OK] Root access verified"
 # Setup flag file
 FLAG=$(<$FLAG_FN)
 $on_guest push $FLAG_FN /data/local/tmp
-$as_root "chmod 0000 /data/local/tmp/flag"
-$as_root "chown root:root /data/local/tmp/flag"
+
+if [ "$TEST_MODE" -eq 1 ]; then
+    # Test mode: make flag readable by the exploit user
+    $as_root "chmod 0644 /data/local/tmp/flag"
+    $as_root "chown 10108:10108 /data/local/tmp/flag"
+    echo "[TEST MODE] Flag is readable by exploit user"
+else
+    # Production mode: flag requires root
+    $as_root "chmod 0000 /data/local/tmp/flag"
+    $as_root "chown root:root /data/local/tmp/flag"
+fi
 
 PORT_TO_USE=$(expr $instance_num + 7000)
 
