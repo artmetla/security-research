@@ -182,6 +182,7 @@ jobs:
     env:
       RELEASE_ID: ${{ matrix.target }}
       EXPLOIT_DIR: pr/pocs/linux/kernelctf/${{ needs.structure_check.outputs.submission_dir }}/exploit/${{ matrix.target }}
+      SUBMISSION_DIR: ${{ needs.structure_check.outputs.submission_dir }}
     steps:
       - name: Checkout PR content
         uses: actions/checkout@v4
@@ -190,23 +191,58 @@ jobs:
           ref: ${{ env.PR_REF }}
           fetch-depth: 0
 
-      - name: Install kernelXDK
+      - name: Checkout master for dependencies script
+        if: startsWith(matrix.target, 'android')
+        uses: actions/checkout@v4
+        with:
+          path: master
+          ref: master
+
+      - name: Install Android dependencies (exploit-build-only mode)
+        if: startsWith(matrix.target, 'android')
         run: |
-            sudo apt install libkeyutils-dev
-            wget https://github.com/google/kernel-research/releases/download/libxdk%2Fv0.1/libxdk-v0.1.tar.gz
-            tar -xzvf libxdk-v0.1.tar.gz
-            chmod -R o+rx include lib
-            sudo cp -R include/* /usr/local/include/
-            sudo cp -R lib/* /usr/lib/
+          chmod +x master/kernelctf/server/get_android_dependencies.sh
+          sudo master/kernelctf/server/get_android_dependencies.sh exploit-build-only
+
+      - name: Install Android NDK
+        if: startsWith(matrix.target, 'android')
+        run: |
+          export ANDROID_HOME=/usr/lib/android-sdk
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          
+          # Get the latest available NDK version from sdkmanager
+          NDK_VERSION=$($SDKMANAGER --list | grep "ndk;" | grep -v "ndk-bundle" | tail -1 | awk '{print $1}' | cut -d';' -f2)
+          
+          echo "Installing latest NDK version: ${NDK_VERSION}"
+          sudo $SDKMANAGER "ndk;${NDK_VERSION}"
+          
+          # Add NDK toolchain to PATH
+          NDK_TOOLCHAIN_PATH="$ANDROID_HOME/ndk/${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "PATH=$NDK_TOOLCHAIN_PATH:$PATH" >> $GITHUB_ENV
+
+      - name: Install kernelXDK (Linux only)
+        if: ${{ !startsWith(matrix.target, 'android') }}
+        run: |
+          sudo apt install libkeyutils-dev
+          wget https://github.com/google/kernel-research/releases/download/libxdk%2Fv0.1/libxdk-v0.1.tar.gz
+          tar -xzvf libxdk-v0.1.tar.gz
+          chmod -R o+rx include lib
+          sudo cp -R include/* /usr/local/include/
+          sudo cp -R lib/* /usr/lib/
 
       - name: Convert exploit to debug build
         working-directory: ${{ env.EXPLOIT_DIR }}
         run: |
-          sed -i '/gcc -g/!s/gcc/gcc -g/g' Makefile
+          # Add -g flag to any gcc or clang variant (including x86_64-linux-android21-clang)
+          sed -i -E 's/([a-zA-Z0-9_-]*)(gcc|clang)(\s)/\1\2 -g\3/g' Makefile
           sed -i '/configure --enable-debug/!s/configure/configure --enable-debug/g' Makefile
           sed -i 's/-o exploit /-o exploit_debug /g' Makefile
           sed -i 's/ -s\b//g' Makefile
           sed -i 's/exploit:/exploit_debug:/g' Makefile
+          sed -i 's/all: exploit/all: exploit_debug/g' Makefile
 
       - name: Build exploit
         working-directory: ${{ env.EXPLOIT_DIR }}
