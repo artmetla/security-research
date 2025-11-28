@@ -239,10 +239,10 @@ jobs:
           # Add -g flag to any gcc or clang variant (including x86_64-linux-android21-clang)
           sed -i -E 's/([a-zA-Z0-9_-]*)(gcc|clang)(\s)/\1\2 -g\3/g' Makefile
           sed -i '/configure --enable-debug/!s/configure/configure --enable-debug/g' Makefile
-          sed -i 's/-o exploit /-o exploit_debug /g' Makefile
+          sed -i 's/-o exploit\b/-o exploit_debug/g' Makefile
           sed -i 's/ -s\b//g' Makefile
           sed -i 's/exploit:/exploit_debug:/g' Makefile
-          sed -i 's/all: exploit/all: exploit_debug/g' Makefile
+          sed -i 's/all: exploit$/all: exploit_debug/g' Makefile
 
       - name: Build exploit
         working-directory: ${{ env.EXPLOIT_DIR }}
