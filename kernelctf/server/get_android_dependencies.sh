@@ -361,6 +361,53 @@ EOF
     cd $SCRIPT_DIR
 fi
 
+# Export environment variables
+if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+    # CI/CD environment (GitHub Actions, etc.)
+    if [ -n "$GITHUB_ENV" ] && [ -n "$GITHUB_PATH" ]; then
+        log "Exporting environment variables for GitHub Actions..."
+        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+        echo "$NDK_TOOLCHAIN_PATH" >> $GITHUB_PATH
+        
+        log "Environment variables exported to GitHub Actions:"
+        log "  ANDROID_HOME=$ANDROID_HOME"
+        log "  ANDROID_NDK_HOME=$ANDROID_NDK_HOME"
+        log "  NDK in PATH: $NDK_TOOLCHAIN_PATH"
+    fi
+else
+    # Local development environment
+    ENV_FILE="$SCRIPT_DIR/android_env.sh"
+    log "Creating environment file: $ENV_FILE"
+    
+    cat > "$ENV_FILE" << EOF
+# Android development environment
+# Source this file to set up your environment:
+#   source $ENV_FILE
+
+export ANDROID_HOME="$ANDROID_HOME"
+export ANDROID_NDK_HOME="$ANDROID_NDK_HOME"
+export PATH="$NDK_TOOLCHAIN_PATH:\$PATH"
+
+echo "Android development environment loaded:"
+echo "  ANDROID_HOME=\$ANDROID_HOME"
+echo "  ANDROID_NDK_HOME=\$ANDROID_NDK_HOME"
+echo "  NDK toolchain added to PATH"
+EOF
+    
+    chmod +x "$ENV_FILE"
+    
+    echo ""
+    warn "==============================================="
+    warn "Environment variables have been saved to:"
+    warn "  $ENV_FILE"
+    warn ""
+    warn "To use them in your current shell, run:"
+    warn "  source $ENV_FILE"
+    warn "==============================================="
+    echo ""
+fi
+
 log "... The End ..."
 
 if [ "$EXPLOIT_BUILD_ONLY" = false ] && [ "$NEEDS_RELOAD" = true ]; then
