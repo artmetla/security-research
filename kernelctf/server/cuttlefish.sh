@@ -306,7 +306,7 @@ ADB_PORT=$((6520 + instance_num - 1))
 echo "[STARTING] Starting Cuttlefish instance..."
 
 # Build base launch flags
-LAUNCH_FLAGS="--daemon --console=true --resume=false --verbosity=ERROR --system_image_dir=\"$RELEASE_PATH\" --base_instance_num=$instance_num -report_anonymous_usage_stats=n"
+LAUNCH_FLAGS="--console=true --resume=false --verbosity=ERROR --system_image_dir=\"$RELEASE_PATH\" --base_instance_num=$instance_num -report_anonymous_usage_stats=n"
 
 # Check if enable_tap_devices flag is supported (Android 16+)
 # Android 16+ defaults to TAP networking which requires CAP_NET_ADMIN capability
@@ -325,7 +325,7 @@ fi
 
 # Wait for the instance to fully start and become ready
 echo -n "[WAITING] Waiting for instance to start"
-max_wait=30
+max_wait=120
 waited=0
 while [ $waited -lt $max_wait ]; do
     if [ -f "$RELEASE_PATH/cuttlefish_runtime.$instance_num/cuttlefish_config.json" ]; then
