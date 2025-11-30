@@ -107,7 +107,7 @@ jobs:
         if: startsWith(matrix.target, 'android')
         run: |
           chmod +x master/kernelctf/server/get_android_dependencies.sh
-          sudo -E bash master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
+          bash master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
 
       - name: Install kernelXDK (Linux only)
         if: startsWith(matrix.target, 'android') == false
@@ -183,7 +183,7 @@ jobs:
         if: startsWith(matrix.target, 'android')
         run: |
           chmod +x master/kernelctf/server/get_android_dependencies.sh
-          sudo -E bash master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
+          bash master/kernelctf/server/get_android_dependencies.sh --exploit-build-only
 
       - name: Install kernelXDK (Linux only)
         if: startsWith(matrix.target, 'android') == false
@@ -305,8 +305,8 @@ jobs:
           # Start Android dependencies installation in background
           (
             chmod +x ../../android_deps/kernelctf/server/get_android_dependencies.sh
-            sudo -E bash ../../android_deps/kernelctf/server/get_android_dependencies.sh > android_deps_install.log 2>&1
-            echo "Dependencies installation completed"
+            bash ../../android_deps/kernelctf/server/get_android_dependencies.sh > android_deps_install.log 2>&1
+            echo "✓ Dependencies installation completed"
           ) &
           DEPS_PID=$!
           
@@ -319,13 +319,13 @@ jobs:
             BUILD_NUMBER=$(echo "$RELEASE_ID" | grep -oP '\d+$')
             
             echo "Downloading Android system images for $RELEASE_ID (build: $BUILD_NUMBER)..."
-            wget -q --show-progress https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/aosp_cf_x86_64_only_phone-img-${BUILD_NUMBER}.zip 2>&1 | grep -v '^$' || true
-            wget -q --show-progress https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/cvd-host_package.tar.gz 2>&1 | grep -v '^$' || true
+            wget --progress=dot:giga https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/aosp_cf_x86_64_only_phone-img-${BUILD_NUMBER}.zip 2>&1 | tail -n 1
+            wget --progress=dot:giga https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/cvd-host_package.tar.gz 2>&1 | tail -n 1
             
             echo "Extracting images..."
             unzip -q aosp_cf_x86_64_only_phone-img-${BUILD_NUMBER}.zip
             tar -xzf cvd-host_package.tar.gz
-            echo "System images download completed"
+            echo "✓ System images download completed"
           ) &
           DOWNLOAD_PID=$!
           
@@ -338,18 +338,18 @@ jobs:
           
           # Check if either failed
           if [ $DEPS_EXIT -ne 0 ]; then
-            echo "Error: Dependencies installation failed with exit code $DEPS_EXIT"
+            echo "❌ Error: Dependencies installation failed with exit code $DEPS_EXIT"
             echo "Last 50 lines of android_deps_install.log:"
             tail -n 50 android_deps_install.log || true
             exit $DEPS_EXIT
           fi
           
           if [ $DOWNLOAD_EXIT -ne 0 ]; then
-            echo "Error: Image download failed with exit code $DOWNLOAD_EXIT"
+            echo "❌ Error: Image download failed with exit code $DOWNLOAD_EXIT"
             exit $DOWNLOAD_EXIT
           fi
           
-          echo "Both tasks completed successfully"
+          echo "✓ Both tasks completed successfully"
 
       - name: Set paths - Android only
         if: startsWith(matrix.target, 'android')
