@@ -36,6 +36,8 @@ fi
 
 echo "[REPRO $TRY_ID] Using cuttlefish script: $CUTTLEFISH_SCRIPT"
 
+cat /etc/group
+
 sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- bash "$CUTTLEFISH_SCRIPT" \
     --release_path="$RELEASE_PATH" \
     --bin_path="$EXPLOIT_PATH" \
