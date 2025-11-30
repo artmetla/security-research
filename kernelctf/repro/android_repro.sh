@@ -5,7 +5,6 @@ TRY_ID="$1"
 RELEASE_PATH="$2"
 EXPLOIT_PATH="$3"
 APK_PATH="$4"
-STDOUT_TIMEOUT=240
 CUTTLEFISH_TXT=cuttlefish_$TRY_ID.txt
 
 FLAG="kernelCTF{$(uuidgen)}"
@@ -37,16 +36,12 @@ fi
 
 echo "[REPRO $TRY_ID] Using cuttlefish script: $CUTTLEFISH_SCRIPT"
 
-# In CI, device permissions are set to 0666, so we can skip group checks
-# The groups (kvm, cvdnetwork, render) are added by get_android_dependencies.sh
-# but they don't activate in the current shell without a login session restart
-timeout ${STDOUT_TIMEOUT}s bash "$CUTTLEFISH_SCRIPT" \
+sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- bash "$CUTTLEFISH_SCRIPT" \
     --release_path="$RELEASE_PATH" \
     --bin_path="$EXPLOIT_PATH" \
     --flag_path=flag_$TRY_ID \
     --apk_path="$APK_PATH" \
     --test-mode \
-    --skip-checks \
     2>&1 | tee $CUTTLEFISH_TXT &
 
 CUTTLEFISH_PID="$!"
