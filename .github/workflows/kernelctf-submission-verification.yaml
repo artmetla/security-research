@@ -299,37 +299,65 @@ jobs:
           path: android_deps
           ref: master
 
-      - name: Install Android dependencies (full) - Android only
+      - name: Install Android dependencies and download system images (parallel) - Android only
         if: startsWith(matrix.target, 'android')
         run: |
-          chmod +x ../../android_deps/kernelctf/server/get_android_dependencies.sh
-          sudo -E bash ../../android_deps/kernelctf/server/get_android_dependencies.sh
+          # Start Android dependencies installation in background
+          (
+            chmod +x ../../android_deps/kernelctf/server/get_android_dependencies.sh
+            sudo -E bash ../../android_deps/kernelctf/server/get_android_dependencies.sh > android_deps_install.log 2>&1
+            echo "Dependencies installation completed"
+          ) &
+          DEPS_PID=$!
+          
+          # Start system images download in background
+          (
+            mkdir -p android_release
+            cd android_release
+            
+            # Extract build number from RELEASE_ID (e.g., android16-6.12.23-x86_64-14421689 -> 14421689)
+            BUILD_NUMBER=$(echo "$RELEASE_ID" | grep -oP '\d+$')
+            
+            echo "Downloading Android system images for $RELEASE_ID (build: $BUILD_NUMBER)..."
+            wget -q --show-progress https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/aosp_cf_x86_64_only_phone-img-${BUILD_NUMBER}.zip 2>&1 | grep -v '^$' || true
+            wget -q --show-progress https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/cvd-host_package.tar.gz 2>&1 | grep -v '^$' || true
+            
+            echo "Extracting images..."
+            unzip -q aosp_cf_x86_64_only_phone-img-${BUILD_NUMBER}.zip
+            tar -xzf cvd-host_package.tar.gz
+            echo "System images download completed"
+          ) &
+          DOWNLOAD_PID=$!
+          
+          # Wait for both to complete
+          echo "Running in parallel: dependencies installation (PID: $DEPS_PID) and image download (PID: $DOWNLOAD_PID)..."
+          wait $DEPS_PID
+          DEPS_EXIT=$?
+          wait $DOWNLOAD_PID
+          DOWNLOAD_EXIT=$?
+          
+          # Check if either failed
+          if [ $DEPS_EXIT -ne 0 ]; then
+            echo "Error: Dependencies installation failed with exit code $DEPS_EXIT"
+            echo "Last 50 lines of android_deps_install.log:"
+            tail -n 50 android_deps_install.log || true
+            exit $DEPS_EXIT
+          fi
+          
+          if [ $DOWNLOAD_EXIT -ne 0 ]; then
+            echo "Error: Image download failed with exit code $DOWNLOAD_EXIT"
+            exit $DOWNLOAD_EXIT
+          fi
+          
+          echo "Both tasks completed successfully"
 
-      - name: Set APK path - Android only
+      - name: Set paths - Android only
         if: startsWith(matrix.target, 'android')
         run: |
           APK_PATH="../../android_deps/kernelctf/server/android_shellserver/app/build/outputs/apk/release/app-release.apk"
           echo "APK_PATH=$(realpath $APK_PATH)" >> $GITHUB_ENV
           echo "[INFO] APK path set to: $(realpath $APK_PATH)"
-
-      - name: Download Android system images - Android only
-        if: startsWith(matrix.target, 'android')
-        run: |
-          mkdir -p android_release
-          cd android_release
           
-          # Extract build number from RELEASE_ID (e.g., android16-6.12.23-x86_64-14421689 -> 14421689)
-          BUILD_NUMBER=$(echo "$RELEASE_ID" | grep -oP '\d+$')
-          
-          echo "Downloading Android system images for $RELEASE_ID (build: $BUILD_NUMBER)..."
-          wget https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/aosp_cf_x86_64_only_phone-img-${BUILD_NUMBER}.zip
-          wget https://storage.googleapis.com/kernelctf-build/releases/$RELEASE_ID/cvd-host_package.tar.gz
-          
-          echo "Extracting images..."
-          unzip -q aosp_cf_x86_64_only_phone-img-${BUILD_NUMBER}.zip
-          tar -xzf cvd-host_package.tar.gz
-          
-          cd ..
           echo "ANDROID_RELEASE_PATH=$(realpath android_release)" >> $GITHUB_ENV
 
       # ============================================
