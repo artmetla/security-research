@@ -37,16 +37,13 @@ fi
 
 echo "[REPRO $TRY_ID] Using cuttlefish script: $CUTTLEFISH_SCRIPT"
 
-# In CI, use sudo --user to activate group memberships that were added but not yet active
-# This allows cuttlefish.sh group checks to pass
-sudo --user "$USER" --preserve-env --preserve-env=PATH -- env -- \
-    timeout ${STDOUT_TIMEOUT}s bash "$CUTTLEFISH_SCRIPT" \
-        --release_path="$RELEASE_PATH" \
-        --bin_path="$EXPLOIT_PATH" \
+sudo --user "$USER" --preserve-env --preserve-env=PATH -- bash -c \
+    "timeout ${STDOUT_TIMEOUT}s bash '$CUTTLEFISH_SCRIPT' \
+        --release_path='$RELEASE_PATH' \
+        --bin_path='$EXPLOIT_PATH' \
         --flag_path=flag_$TRY_ID \
-        --apk_path="$APK_PATH" \
-        --test-mode \
-        2>&1 | tee $CUTTLEFISH_TXT &
+        --apk_path='$APK_PATH' \
+        --test-mode 2>&1" | tee $CUTTLEFISH_TXT &
 
 CUTTLEFISH_PID="$!"
 
